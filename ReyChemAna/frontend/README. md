@@ -1,0 +1,240 @@
+# Laboratory Request Management System - Frontend
+
+React + Vite frontend for the LIMS application.
+
+## Technology Stack
+
+- **React** 18.2+
+- **Vite** 5.0+ (build tool)
+- **React Router** 6.20+ (routing)
+- **Axios** 1.6+ (HTTP client)
+
+## Project Structure
+
+```
+frontend/
+├── public/                    # Static assets
+├── src/
+│   ├── components/           # React components
+│   │   ├── Auth/            # Login component
+│   │   ├── Common/          # Shared components
+│   │   ├── Layout/          # Layout components
+│   │   ├── Chemist/         # Chemist-specific views
+│   │   ├── Analyst/         # Analyst-specific views
+│   │   └── Admin/           # Admin-specific views
+│   ├── context/             # React context (Auth)
+│   ├── hooks/               # Custom hooks
+│   ├── services/            # API services
+│   ├── styles/              # CSS styles
+│   ├── utils/               # Utility functions
+│   ├── App.jsx              # Main app component
+│   └── main.jsx             # Entry point
+├── .env                      # Environment variables
+├── .env.example              # Environment template
+├── index.html                # HTML template
+├── package.json              # Dependencies
+├── vite.config.js            # Vite configuration
+└── README.md
+```
+
+## Setup Instructions
+
+### 1. Prerequisites
+
+- Node.js 18 or higher
+- npm or yarn
+
+### 2. Install Dependencies
+
+```powershell
+cd D:\CAAD_Soft\ReyChemAna\frontend
+npm install
+```
+
+### 3. Configure Environment
+
+```powershell
+# Copy environment template
+copy .env.example .env
+
+# Edit .env and update API URL
+# VITE_API_URL=http://localhost:8000/api
+# Or use server IP for LAN access:
+# VITE_API_URL=http://192.168.1.100:8000/api
+```
+
+### 4. Start Development Server
+
+```powershell
+npm run dev
+```
+
+The application will be available at:
+- http://localhost:5173 (local)
+- http://your-ip:5173 (LAN access)
+
+### 5. Build for Production
+
+```powershell
+npm run build
+```
+
+Production files will be in the `dist/` directory.
+
+## Features
+
+✅ JWT-based authentication with auto-refresh  
+✅ Role-based routing and UI  
+✅ Protected routes with access control  
+✅ Clean, professional interface  
+✅ Responsive design  
+✅ Error handling and loading states  
+
+## User Roles & Dashboards
+
+### Chemist
+- View own analysis requests
+- Create new analysis requests
+- Select multiple analysis types
+- Track request status
+- Download results (when available)
+
+### Analyst
+- View all analysis requests
+- Filter by status (pending, in progress)
+- Update request status
+- Assign requests to self
+- Upload result files
+- Add analyst comments
+
+### Admin
+- Manage users
+- Create new users
+- Activate/deactivate users
+- View audit logs
+- Full system access
+
+## Available Routes
+
+- `/login` - Login page
+- `/chemist` - Chemist dashboard
+- `/chemist/create-request` - Create new request
+- `/analyst` - Analyst dashboard
+- `/admin` - Admin dashboard (user management)
+
+## API Integration
+
+All API calls are handled through service modules:
+
+- `authService.js` - Authentication (login, logout)
+- `requestService.js` - Request management
+- `userService.js` - User management (admin)
+
+Axios interceptors automatically:
+- Add JWT tokens to requests
+- Handle token expiration
+- Redirect to login on 401 errors
+
+## Development Tips
+
+### Adding New Components
+
+1. Create component in appropriate directory
+2. Use functional components with hooks
+3. Import and use services for API calls
+4. Follow existing patterns for consistency
+
+### Styling
+
+- Use existing CSS classes from `styles/index.css`
+- Follow naming conventions (e.g., `btn-primary`, `form-group`)
+- Maintain professional, scientific aesthetic
+
+### State Management
+
+- Use React Context for global state (Auth)
+- Use local state for component-specific data
+- Use services for API communication
+
+## Troubleshooting
+
+### Port Already in Use
+
+```powershell
+# Kill process using port 5173
+netstat -ano | findstr :5173
+taskkill /PID <PID> /F
+```
+
+### API Connection Error
+
+- Verify backend is running on port 8000
+- Check VITE_API_URL in `.env`
+- Ensure CORS is configured in backend
+
+### Build Errors
+
+```powershell
+# Clear node_modules and reinstall
+rm -r node_modules
+rm package-lock.json
+npm install
+```
+
+## Production Deployment
+
+### Option 1: Serve with Backend
+
+Configure backend (FastAPI) to serve static files from `dist/`.
+
+### Option 2: Separate Web Server
+
+Use nginx or IIS to serve the `dist/` folder.
+
+Example nginx configuration:
+```nginx
+server {
+    listen 80;
+    server_name your-server-ip;
+    
+    root D:/CAAD_Soft/ReyChemAna/frontend/dist;
+    index index.html;
+    
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+    
+    location /api {
+        proxy_pass http://localhost:8000;
+    }
+}
+```
+
+### Option 3: Node.js Server
+
+```powershell
+npm install -g serve
+serve -s dist -p 5173
+```
+
+## Security Notes
+
+⚠️ **IMPORTANT**:
+1. Always use environment variables for API URLs
+2. Never commit `.env` files
+3. Use HTTPS in production
+4. Validate all user inputs
+5. Keep dependencies updated
+
+## Browser Support
+
+- Chrome/Edge (latest)
+- Firefox (latest)
+- Safari (latest)
+
+## Performance
+
+- Code splitting for route components
+- Lazy loading for large components
+- Optimized bundle size with Vite
+- Fast refresh during development
