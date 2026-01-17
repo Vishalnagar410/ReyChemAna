@@ -37,6 +37,14 @@ const requestService = {
     },
 
     /**
+     * Analyst acknowledges sample receipt
+     */
+    async sampleReceived(id) {
+        const response = await api.post(`/requests/${id}/sample-received`);
+        return response.data;
+    },
+
+    /**
      * Update request (chemist - own requests)
      */
     async updateRequestChemist(id, data) {

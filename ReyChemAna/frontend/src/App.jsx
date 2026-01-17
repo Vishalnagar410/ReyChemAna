@@ -10,10 +10,12 @@ import ChemistDashboard from './components/Chemist/ChemistDashboard';
 import CreateRequest from './components/Chemist/CreateRequest';
 import AnalystDashboard from './components/Analyst/AnalystDashboard';
 import AdminDashboard from './components/Admin/AdminDashboard';
+import RequestDetails from './components/Common/RequestDetails';
 import { USER_ROLES } from './utils/constants';
 
 function AppRoutes() {
     const { user, loading } = useAuth();
+
 
     if (loading) {
         return (
@@ -69,6 +71,14 @@ function AppRoutes() {
                     </ProtectedRoute>
                 }
             />
+            <Route
+                path="/chemist/request/:id"
+                element={
+                    <ProtectedRoute allowedRoles={[USER_ROLES.CHEMIST]}>
+                        <RequestDetails />
+                    </ProtectedRoute>
+                }
+            />
 
             {/* Analyst Routes */}
             <Route
@@ -76,6 +86,14 @@ function AppRoutes() {
                 element={
                     <ProtectedRoute allowedRoles={[USER_ROLES.ANALYST]}>
                         <AnalystDashboard />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/analyst/request/:id"
+                element={
+                    <ProtectedRoute allowedRoles={[USER_ROLES.ANALYST]}>
+                        <RequestDetails />
                     </ProtectedRoute>
                 }
             />

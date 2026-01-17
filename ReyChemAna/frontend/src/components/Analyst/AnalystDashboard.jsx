@@ -6,13 +6,20 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../Layout/Navbar';
 import StatusBadge from '../Common/StatusBadge';
 import requestService from '../../services/requestService';
-import { REQUEST_STATUS, PRIORITY_LABELS, PRIORITY_COLORS } from '../../utils/constants';
+import { useAuth } from '../../hooks/useAuth';
+import {
+    REQUEST_STATUS,
+    PRIORITY_LABELS,
+    PRIORITY_COLORS,
+    USER_ROLES
+} from '../../utils/constants';
 
 export default function AnalystDashboard() {
     const [requests, setRequests] = useState([]);
     const [filter, setFilter] = useState('all');
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     useEffect(() => {
         loadRequests();
@@ -34,6 +41,35 @@ export default function AnalystDashboard() {
             console.error('Error loading requests:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSampleReceived = async (requestId) => {
+        try {
+            // Optimistic update to UI
+            setRequests(prev => prev.map(req => {
+                if (req.id === requestId) {
+                    return {
+                        ...req,
+                        status: REQUEST_STATUS.IN_PROGRESS,
+                        analyst_id: user.id,
+                        analyst_name: user.full_name
+                    };
+                }
+                return req;
+            }));
+
+            // API Call
+            await requestService.sampleReceived(requestId);
+
+            // Re-fetch to ensure sync with backend (optional but safer)
+            loadRequests();
+
+        } catch (error) {
+            console.error('Failed to update request status:', error);
+            alert('Failed to acknowledge sample. Please try again.');
+            // Revert changes on error
+            loadRequests();
         }
     };
 
@@ -88,6 +124,7 @@ export default function AnalystDashboard() {
                                     <th>Due Date</th>
                                     <th>Status</th>
                                     <th>Analyst</th>
+                                    <th>Actions</th>
                                     <th>Created</th>
                                 </tr>
                             </thead>
@@ -115,6 +152,22 @@ export default function AnalystDashboard() {
                                         <td>{formatDate(request.due_date)}</td>
                                         <td><StatusBadge status={request.status} /></td>
                                         <td>{request.analyst_name || '-'}</td>
+                                        <td>
+                                            {user &&
+                                                user.role === USER_ROLES.ANALYST &&
+                                                request.status === REQUEST_STATUS.PENDING && (
+                                                    <button
+                                                        className="btn-primary"
+                                                        style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleSampleReceived(request.id);
+                                                        }}
+                                                    >
+                                                        Sample Received
+                                                    </button>
+                                                )}
+                                        </td>
                                         <td>{formatDate(request.created_at)}</td>
                                     </tr>
                                 ))}

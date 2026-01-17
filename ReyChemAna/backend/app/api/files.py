@@ -101,9 +101,7 @@ async def upload_files(
             request_id=request.id,
             uploaded_by=current_user.id,
             file_name=file_path.name,
-            file_path=relative_path,
-            file_type=file.content_type,
-            file_size=file_size
+            file_path=relative_path
         )
         
         db.add(result_file)

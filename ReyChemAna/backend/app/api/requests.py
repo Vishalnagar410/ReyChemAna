@@ -243,6 +243,36 @@ async def list_requests(
 # (UNCHANGED — intentionally preserved)
 # ============================================================
 
+@router.patch("/{request_id}", response_model=RequestResponse)
+async def update_request(
+    request_id: int,
+    update_data: RequestUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    _: bool = Depends(require_analyst),
+):
+    request = db.query(AnalysisRequest).filter(AnalysisRequest.id == request_id).first()
+    if not request:
+        raise HTTPException(404, "Request not found")
+
+    # Update status
+    if update_data.status:
+        if update_data.status == RequestStatus.COMPLETED:
+             request.completed_at = datetime.utcnow()
+        
+        log_status_change(
+            db=db,
+            user=current_user,
+            request_id=request.id,
+            old_status=request.status,
+            new_status=update_data.status
+        )
+        request.status = update_data.status
+
+    db.commit()
+    db.refresh(request)
+    return _build_request_response(request, db)
+
 @router.get("/{request_id}", response_model=RequestResponse)
 async def get_request(
     request_id: int,
