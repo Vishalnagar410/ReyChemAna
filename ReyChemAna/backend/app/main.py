@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.api import auth, users, requests, files
+from app.api import admin_requests, admin_analytics, admin_export
 
 # Create FastAPI application
 app = FastAPI(
@@ -27,7 +28,9 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(requests.router, prefix="/api")
 app.include_router(files.router, prefix="/api")
-
+app.include_router(admin_requests.router, prefix="/api")
+app.include_router(admin_analytics.router, prefix="/api")
+app.include_router(admin_export.router, prefix="/api")
 
 @app.get("/")
 async def root():

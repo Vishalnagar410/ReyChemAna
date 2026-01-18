@@ -407,3 +407,46 @@ body {
     min-width: 800px;
   }
 }
+
+/* ================================
+   Admin Dashboard Tabs (Phase-C)
+   Matches existing button styling
+================================ */
+
+.tabs {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.tab-btn {
+  padding: 0.55rem 1.2rem;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+/* Hover = same feel as buttons */
+.tab-btn:hover {
+  background: #eef2ff;
+  border-color: #6366f1;
+  color: #4338ca;
+}
+
+/* Active = btn-primary equivalent */
+.tab-btn.active {
+  background: #4f46e5;
+  /* SAME as btn-primary */
+  color: #ffffff;
+  border-color: #4f46e5;
+}
+
+/* Mobile safety */
+@media (max-width: 640px) {
+  .tabs {
+    flex-wrap: wrap;
+  }
+}
