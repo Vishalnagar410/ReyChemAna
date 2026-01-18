@@ -62,18 +62,37 @@ const requestService = {
 
     /**
      * Upload files to request
+     * ✅ Supports real upload progress %
+     *
+     * @param {number} requestId
+     * @param {File[]} files
+     * @param {(percent:number)=>void} onProgress OPTIONAL
      */
-    async uploadFiles(requestId, files) {
+    async uploadFiles(requestId, files, onProgress) {
         const formData = new FormData();
         files.forEach(file => {
             formData.append('files', file);
         });
 
-        const response = await api.post(`/files/upload/${requestId}`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
+        const response = await api.post(
+            `/files/upload/${requestId}`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                },
+                onUploadProgress: (progressEvent) => {
+                    if (!onProgress) return;
+
+                    const { loaded, total } = progressEvent;
+                    if (total) {
+                        const percent = Math.round((loaded * 100) / total);
+                        onProgress(percent);
+                    }
+                }
             }
-        });
+        );
+
         return response.data;
     },
 
@@ -85,7 +104,6 @@ const requestService = {
             responseType: 'blob'
         });
 
-        // Create download link
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;

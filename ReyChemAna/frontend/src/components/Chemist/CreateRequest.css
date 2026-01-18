@@ -1,0 +1,47 @@
+.pill-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.pill {
+    border: 1.5px solid #cbd5e1;
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+}
+
+.pill strong {
+    display: block;
+    font-size: 13px;
+}
+
+.pill span {
+    font-size: 12px;
+    color: #475569;
+}
+
+.pill:hover {
+    border-color: #6366f1;
+}
+
+.pill.active {
+    background: #eef2ff;
+    border-color: #6366f1;
+}
+
+.pill-error {
+    border: 1.5px solid #ef4444;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.field-error {
+    color: #dc2626;
+    font-size: 13px;
+    margin-top: 4px;
+}

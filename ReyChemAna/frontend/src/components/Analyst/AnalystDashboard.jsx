@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../Layout/Navbar';
 import StatusBadge from '../Common/StatusBadge';
+import ResultUploadModal from './ResultUploadModal';
+import RequestDetailsModal from '../Common/RequestDetailsModal';
 import requestService from '../../services/requestService';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -18,8 +20,12 @@ export default function AnalystDashboard() {
     const [requests, setRequests] = useState([]);
     const [filter, setFilter] = useState('all');
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
+    const [selectedRequest, setSelectedRequest] = useState(null);
+    const [viewRequestId, setViewRequestId] = useState(null);
+
     const { user } = useAuth();
+    // remove navigate since we don't use it anymore
+    // const navigate = useNavigate();
 
     useEffect(() => {
         loadRequests();
@@ -33,6 +39,8 @@ export default function AnalystDashboard() {
                 params.status = REQUEST_STATUS.PENDING;
             } else if (filter === 'in_progress') {
                 params.status = REQUEST_STATUS.IN_PROGRESS;
+            } else if (filter === 'completed') {
+                params.status = REQUEST_STATUS.COMPLETED;
             }
 
             const data = await requestService.getRequests(params);
@@ -46,29 +54,24 @@ export default function AnalystDashboard() {
 
     const handleSampleReceived = async (requestId) => {
         try {
-            // Optimistic update to UI
-            setRequests(prev => prev.map(req => {
-                if (req.id === requestId) {
-                    return {
-                        ...req,
-                        status: REQUEST_STATUS.IN_PROGRESS,
-                        analyst_id: user.id,
-                        analyst_name: user.full_name
-                    };
-                }
-                return req;
-            }));
+            setRequests(prev =>
+                prev.map(req =>
+                    req.id === requestId
+                        ? {
+                            ...req,
+                            status: REQUEST_STATUS.IN_PROGRESS,
+                            analyst_id: user.id,
+                            analyst_name: user.full_name
+                        }
+                        : req
+                )
+            );
 
-            // API Call
             await requestService.sampleReceived(requestId);
-
-            // Re-fetch to ensure sync with backend (optional but safer)
             loadRequests();
-
         } catch (error) {
             console.error('Failed to update request status:', error);
             alert('Failed to acknowledge sample. Please try again.');
-            // Revert changes on error
             loadRequests();
         }
     };
@@ -88,7 +91,7 @@ export default function AnalystDashboard() {
                             className={filter === 'all' ? 'btn-filter active' : 'btn-filter'}
                             onClick={() => setFilter('all')}
                         >
-                            All Requests
+                            All
                         </button>
                         <button
                             className={filter === 'pending' ? 'btn-filter active' : 'btn-filter'}
@@ -102,6 +105,12 @@ export default function AnalystDashboard() {
                         >
                             In Progress
                         </button>
+                        <button
+                            className={filter === 'completed' ? 'btn-filter active' : 'btn-filter'}
+                            onClick={() => setFilter('completed')}
+                        >
+                            Completed
+                        </button>
                     </div>
                 </div>
 
@@ -109,7 +118,7 @@ export default function AnalystDashboard() {
                     <div className="loading">Loading...</div>
                 ) : requests.length === 0 ? (
                     <div className="empty-state">
-                        <p>No {filter !== 'all' ? filter.replace('_', ' ') + ' ' : ''}requests found.</p>
+                        <p>No requests found.</p>
                     </div>
                 ) : (
                     <div className="table-container">
@@ -132,19 +141,17 @@ export default function AnalystDashboard() {
                                 {requests.map(request => (
                                     <tr
                                         key={request.id}
-                                        onClick={() => navigate(`/analyst/request/${request.id}`)}
+                                        onClick={() => setViewRequestId(request.id)}
                                         style={{ cursor: 'pointer' }}
                                     >
                                         <td><strong>{request.request_number}</strong></td>
                                         <td>{request.chemist_name}</td>
                                         <td>{request.compound_name}</td>
-                                        <td>
-                                            {request.analysis_types.map(at => at.code).join(', ')}
-                                        </td>
+                                        <td>{request.analysis_types.map(at => at.code).join(', ')}</td>
                                         <td>
                                             <span style={{
                                                 color: PRIORITY_COLORS[request.priority],
-                                                fontWeight: '500'
+                                                fontWeight: 500
                                             }}>
                                                 {PRIORITY_LABELS[request.priority]}
                                             </span>
@@ -167,6 +174,22 @@ export default function AnalystDashboard() {
                                                         Sample Received
                                                     </button>
                                                 )}
+
+                                            {user &&
+                                                user.role === USER_ROLES.ANALYST &&
+                                                request.status === REQUEST_STATUS.IN_PROGRESS &&
+                                                request.analyst_id === user.id && (
+                                                    <button
+                                                        className="btn-primary"
+                                                        style={{ padding: '4px 8px', fontSize: '0.8rem', marginLeft: '8px' }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedRequest(request);
+                                                        }}
+                                                    >
+                                                        Upload Results
+                                                    </button>
+                                                )}
                                         </td>
                                         <td>{formatDate(request.created_at)}</td>
                                     </tr>
@@ -176,6 +199,21 @@ export default function AnalystDashboard() {
                     </div>
                 )}
             </div>
+
+            {selectedRequest && (
+                <ResultUploadModal
+                    request={selectedRequest}
+                    onClose={() => setSelectedRequest(null)}
+                    onSuccess={loadRequests}
+                />
+            )}
+
+            {viewRequestId && (
+                <RequestDetailsModal
+                    requestId={viewRequestId}
+                    onClose={() => setViewRequestId(null)}
+                />
+            )}
         </div>
     );
 }

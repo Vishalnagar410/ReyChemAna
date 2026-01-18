@@ -1,0 +1,57 @@
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.modal-card {
+    background: #fff;
+    width: 700px;
+    max-width: 90%;
+    border-radius: 14px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+    transform: scale(0.92);
+    opacity: 0;
+    transition: all 0.2s ease-out;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+}
+
+.modal-show {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.modal-header,
+.modal-footer {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.modal-footer {
+    border-top: 1px solid #e5e7eb;
+    border-bottom: none;
+    justify-content: flex-end;
+}
+
+.modal-close {
+    border: none;
+    background: none;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+}
