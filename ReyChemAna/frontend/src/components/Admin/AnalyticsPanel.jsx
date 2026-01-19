@@ -1,27 +1,49 @@
+/**
+ * Admin Analytics Panel
+ * Phase-C Step-3
+ * - Fixes 422 (page_size capped)
+ * - Client-side aggregation
+ */
+
 import { useEffect, useState } from 'react';
-import adminAnalyticsService from '../../services/adminAnalyticsService';
+import requestService from '../../services/requestService';
+import { REQUEST_STATUS } from '../../utils/constants';
 
 export default function AnalyticsPanel() {
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState(null);
-
-    const [filters, setFilters] = useState({
-        period: 'monthly',
-        status: 'all',
-        chemist_id: 'all',
-        analyst_id: 'all'
+    const [summary, setSummary] = useState({
+        total: 0,
+        pending: 0,
+        in_progress: 0,
+        completed: 0
     });
 
     useEffect(() => {
         loadAnalytics();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters]);
+    }, []);
 
     const loadAnalytics = async () => {
         setLoading(true);
         try {
-            const data = await adminAnalyticsService.getAnalytics(filters);
-            setStats(data);
+            const data = await requestService.getRequests({
+                page: 1,
+                page_size: 100   // 🔑 FIXED
+            });
+
+            const counts = {
+                total: data.requests.length,
+                pending: 0,
+                in_progress: 0,
+                completed: 0
+            };
+
+            data.requests.forEach((r) => {
+                if (r.status === REQUEST_STATUS.PENDING) counts.pending++;
+                if (r.status === REQUEST_STATUS.IN_PROGRESS) counts.in_progress++;
+                if (r.status === REQUEST_STATUS.COMPLETED) counts.completed++;
+            });
+
+            setSummary(counts);
         } catch (error) {
             console.error('Analytics load failed:', error);
         } finally {
@@ -33,62 +55,23 @@ export default function AnalyticsPanel() {
         return <div className="loading">Loading analytics...</div>;
     }
 
-    if (!stats) {
-        return <div className="text-muted">No analytics data available.</div>;
-    }
-
     return (
-        <div>
-            {/* Filters */}
-            <div className="filters" style={{ marginBottom: '1.5rem' }}>
-                <select
-                    value={filters.period}
-                    onChange={(e) =>
-                        setFilters({ ...filters, period: e.target.value })
-                    }
-                >
-                    <option value="monthly">Monthly</option>
-                    <option value="weekly">Weekly</option>
-                </select>
-
-                <select
-                    value={filters.status}
-                    onChange={(e) =>
-                        setFilters({ ...filters, status: e.target.value })
-                    }
-                >
-                    <option value="all">All Status</option>
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                </select>
-            </div>
-
-            {/* KPI Cards */}
-            <div className="grid-4" style={{ marginBottom: '2rem' }}>
-                <div className="card">
-                    <h4>Total Requests</h4>
-                    <strong>{stats.total_requests}</strong>
-                </div>
-                <div className="card">
-                    <h4>Pending</h4>
-                    <strong>{stats.pending}</strong>
-                </div>
-                <div className="card">
-                    <h4>In Progress</h4>
-                    <strong>{stats.in_progress}</strong>
-                </div>
-                <div className="card">
-                    <h4>Completed</h4>
-                    <strong>{stats.completed}</strong>
-                </div>
-            </div>
-
-            {/* Placeholder for charts */}
+        <div className="grid grid-4">
             <div className="card">
-                <p style={{ color: '#6b7280' }}>
-                    📊 Visual charts (donut / trend) will be enabled next.
-                </p>
+                <h3>Total Requests</h3>
+                <strong>{summary.total}</strong>
+            </div>
+            <div className="card">
+                <h3>Pending</h3>
+                <strong>{summary.pending}</strong>
+            </div>
+            <div className="card">
+                <h3>In Progress</h3>
+                <strong>{summary.in_progress}</strong>
+            </div>
+            <div className="card">
+                <h3>Completed</h3>
+                <strong>{summary.completed}</strong>
             </div>
         </div>
     );

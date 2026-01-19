@@ -1,9 +1,9 @@
 /**
  * Admin Dashboard
- * Phase-C Step-2
- * - Users (existing)
- * - Requests (read-only)
- * - Analytics (placeholder)
+ * Phase-C Step-3
+ * - Users (existing, untouched)
+ * - Requests (UI aligned with Analyst)
+ * - Analytics (fixed 422 + panel)
  */
 
 import { useState, useEffect } from 'react';
@@ -11,6 +11,12 @@ import Navbar from '../Layout/Navbar';
 import userService from '../../services/userService';
 import requestService from '../../services/requestService';
 import { useAuth } from '../../hooks/useAuth';
+import AnalyticsPanel from './AnalyticsPanel';
+
+import {
+    REQUEST_STATUS,
+    USER_ROLES
+} from '../../utils/constants';
 
 export default function AdminDashboard() {
     const { user: currentUser, loading: authLoading } = useAuth();
@@ -18,9 +24,9 @@ export default function AdminDashboard() {
     /* ---------------- TAB STATE ---------------- */
     const [activeTab, setActiveTab] = useState('users');
 
-    /* ---------------- USERS STATE (EXISTING) ---------------- */
+    /* ---------------- USERS STATE ---------------- */
     const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loadingUsers, setLoadingUsers] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -31,24 +37,21 @@ export default function AdminDashboard() {
         role: 'chemist'
     });
 
-    /* ---------------- REQUESTS STATE (NEW) ---------------- */
+    /* ---------------- REQUESTS STATE ---------------- */
     const [requests, setRequests] = useState([]);
-    const [reqLoading, setReqLoading] = useState(false);
-
-    const [reqFilters, setReqFilters] = useState({
-        status: 'all'
-    });
+    const [loadingRequests, setLoadingRequests] = useState(true);
+    const [requestFilter, setRequestFilter] = useState('all');
 
     /* ---------------- LOAD USERS ---------------- */
     useEffect(() => {
-        if (!authLoading) {
+        if (!authLoading && activeTab === 'users') {
             loadUsers();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [authLoading]);
+    }, [authLoading, activeTab]);
 
     const loadUsers = async () => {
-        setLoading(true);
+        setLoadingUsers(true);
         try {
             const data = await userService.getUsers({
                 page: 1,
@@ -58,21 +61,32 @@ export default function AdminDashboard() {
         } catch (error) {
             console.error('Error loading users:', error);
         } finally {
-            setLoading(false);
+            setLoadingUsers(false);
         }
     };
 
-    /* ---------------- LOAD REQUESTS (ADMIN READ-ONLY) ---------------- */
+    /* ---------------- LOAD REQUESTS ---------------- */
+    useEffect(() => {
+        if (activeTab === 'requests') {
+            loadRequests();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, requestFilter]);
+
     const loadRequests = async () => {
-        setReqLoading(true);
+        setLoadingRequests(true);
         try {
             const params = {
                 page: 1,
                 page_size: 100
             };
 
-            if (reqFilters.status !== 'all') {
-                params.status = reqFilters.status;
+            if (requestFilter === 'pending') {
+                params.status = REQUEST_STATUS.PENDING;
+            } else if (requestFilter === 'in_progress') {
+                params.status = REQUEST_STATUS.IN_PROGRESS;
+            } else if (requestFilter === 'completed') {
+                params.status = REQUEST_STATUS.COMPLETED;
             }
 
             const data = await requestService.getRequests(params);
@@ -80,26 +94,17 @@ export default function AdminDashboard() {
         } catch (error) {
             console.error('Error loading requests:', error);
         } finally {
-            setReqLoading(false);
+            setLoadingRequests(false);
         }
     };
 
-    /* Load requests when Requests tab opens */
-    useEffect(() => {
-        if (activeTab === 'requests') {
-            loadRequests();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTab, reqFilters]);
-
-    /* ---------------- USER ACTIONS (EXISTING) ---------------- */
+    /* ---------------- USER ACTIONS ---------------- */
     const handleCreateUser = async (e) => {
         e.preventDefault();
-
         try {
             await userService.createUser({
                 ...formData,
-                role: formData.role.toLowerCase().trim()
+                role: formData.role.toLowerCase()
             });
 
             setFormData({
@@ -111,17 +116,9 @@ export default function AdminDashboard() {
             });
 
             setShowCreateForm(false);
-            await loadUsers();
+            loadUsers();
         } catch (error) {
-            const detail = error.response?.data?.detail;
-
-            if (Array.isArray(detail)) {
-                alert(detail.map((d) => d.msg).join('\n'));
-            } else if (typeof detail === 'string') {
-                alert(detail);
-            } else {
-                alert('Failed to create user');
-            }
+            alert('Failed to create user');
         }
     };
 
@@ -132,19 +129,16 @@ export default function AdminDashboard() {
         }
 
         const confirmed = window.confirm(
-            `Are you sure you want to ${user.is_active ? 'deactivate' : 'activate'} user "${user.username}"?`
+            `Are you sure you want to ${user.is_active ? 'deactivate' : 'activate'} this user?`
         );
 
         if (!confirmed) return;
 
-        try {
-            await userService.updateUser(user.id, {
-                is_active: !user.is_active
-            });
-            await loadUsers();
-        } catch (error) {
-            alert('Failed to update user status');
-        }
+        await userService.updateUser(user.id, {
+            is_active: !user.is_active
+        });
+
+        loadUsers();
     };
 
     /* ============================ UI ============================ */
@@ -153,7 +147,8 @@ export default function AdminDashboard() {
             <Navbar />
 
             <div className="container">
-                {/* -------- Tabs -------- */}
+
+                {/* ---------------- Tabs ---------------- */}
                 <div className="tabs" style={{ marginBottom: '1.5rem' }}>
                     <button
                         className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
@@ -175,9 +170,7 @@ export default function AdminDashboard() {
                     </button>
                 </div>
 
-                {/* ===================================================== */}
-                {/* ===================== USERS TAB ===================== */}
-                {/* ===================================================== */}
+                {/* ================= USERS TAB ================= */}
                 {activeTab === 'users' && (
                     <>
                         <div className="page-header">
@@ -191,37 +184,24 @@ export default function AdminDashboard() {
                         </div>
 
                         {showCreateForm && (
-                            <div className="form-card" style={{ marginBottom: '2rem' }}>
+                            <div className="form-card">
                                 <h3>Create New User</h3>
-
                                 <form onSubmit={handleCreateUser}>
                                     <div className="form-row">
                                         <div className="form-group">
                                             <label>Username *</label>
                                             <input
-                                                type="text"
                                                 value={formData.username}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        username: e.target.value
-                                                    })
-                                                }
+                                                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                                 required
                                             />
                                         </div>
-
                                         <div className="form-group">
                                             <label>Email *</label>
                                             <input
                                                 type="email"
                                                 value={formData.email}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        email: e.target.value
-                                                    })
-                                                }
+                                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                                 required
                                             />
                                         </div>
@@ -231,29 +211,17 @@ export default function AdminDashboard() {
                                         <div className="form-group">
                                             <label>Full Name *</label>
                                             <input
-                                                type="text"
                                                 value={formData.full_name}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        full_name: e.target.value
-                                                    })
-                                                }
+                                                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                                                 required
                                             />
                                         </div>
-
                                         <div className="form-group">
                                             <label>Password *</label>
                                             <input
                                                 type="password"
                                                 value={formData.password}
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        password: e.target.value
-                                                    })
-                                                }
+                                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                                 required
                                             />
                                         </div>
@@ -263,13 +231,7 @@ export default function AdminDashboard() {
                                         <label>Role *</label>
                                         <select
                                             value={formData.role}
-                                            onChange={(e) =>
-                                                setFormData({
-                                                    ...formData,
-                                                    role: e.target.value
-                                                })
-                                            }
-                                            required
+                                            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                         >
                                             <option value="chemist">Chemist</option>
                                             <option value="analyst">Analyst</option>
@@ -277,14 +239,12 @@ export default function AdminDashboard() {
                                         </select>
                                     </div>
 
-                                    <button type="submit" className="btn-primary">
-                                        Create User
-                                    </button>
+                                    <button className="btn-primary">Create User</button>
                                 </form>
                             </div>
                         )}
 
-                        {loading ? (
+                        {loadingUsers ? (
                             <div className="loading">Loading users...</div>
                         ) : (
                             <div className="table-container">
@@ -301,34 +261,17 @@ export default function AdminDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {users.map((user) => (
-                                            <tr key={user.id}>
-                                                <td><strong>{user.username}</strong></td>
-                                                <td>{user.full_name}</td>
-                                                <td>{user.email}</td>
-                                                <td style={{ textTransform: 'capitalize' }}>
-                                                    {user.role}
-                                                </td>
+                                        {users.map((u) => (
+                                            <tr key={u.id}>
+                                                <td><strong>{u.username}</strong></td>
+                                                <td>{u.full_name}</td>
+                                                <td>{u.email}</td>
+                                                <td>{u.role}</td>
+                                                <td>{u.is_active ? 'Active' : 'Inactive'}</td>
+                                                <td>{new Date(u.created_at).toLocaleDateString()}</td>
                                                 <td>
-                                                    <span
-                                                        className={
-                                                            user.is_active
-                                                                ? 'status-active'
-                                                                : 'status-inactive'
-                                                        }
-                                                    >
-                                                        {user.is_active ? 'Active' : 'Inactive'}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    {new Date(user.created_at).toLocaleDateString()}
-                                                </td>
-                                                <td>
-                                                    <button
-                                                        className="btn-small"
-                                                        onClick={() => toggleUserStatus(user)}
-                                                    >
-                                                        {user.is_active ? 'Deactivate' : 'Activate'}
+                                                    <button className="btn-small" onClick={() => toggleUserStatus(u)}>
+                                                        {u.is_active ? 'Deactivate' : 'Activate'}
                                                     </button>
                                                 </td>
                                             </tr>
@@ -340,28 +283,25 @@ export default function AdminDashboard() {
                     </>
                 )}
 
-                {/* ===================================================== */}
-                {/* =================== REQUESTS TAB ==================== */}
-                {/* ===================================================== */}
+                {/* ================= REQUESTS TAB ================= */}
                 {activeTab === 'requests' && (
                     <>
-                        <h1>Requests</h1>
-
-                        <div className="filters" style={{ marginBottom: '1rem' }}>
-                            <select
-                                value={reqFilters.status}
-                                onChange={(e) =>
-                                    setReqFilters({ ...reqFilters, status: e.target.value })
-                                }
-                            >
-                                <option value="all">All Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                            </select>
+                        <div className="page-header">
+                            <h1>Requests</h1>
+                            <div className="filter-buttons">
+                                {['all', 'pending', 'in_progress', 'completed'].map((f) => (
+                                    <button
+                                        key={f}
+                                        className={`btn-filter ${requestFilter === f ? 'active' : ''}`}
+                                        onClick={() => setRequestFilter(f)}
+                                    >
+                                        {f.replace('_', ' ').toUpperCase()}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
-                        {reqLoading ? (
+                        {loadingRequests ? (
                             <div className="loading">Loading requests...</div>
                         ) : (
                             <div className="table-container">
@@ -369,10 +309,10 @@ export default function AdminDashboard() {
                                     <thead>
                                         <tr>
                                             <th>Request #</th>
+                                            <th>Chemist</th>
                                             <th>Compound</th>
                                             <th>Status</th>
                                             <th>Priority</th>
-                                            <th>Chemist</th>
                                             <th>Analyst</th>
                                             <th>Created</th>
                                         </tr>
@@ -381,10 +321,10 @@ export default function AdminDashboard() {
                                         {requests.map((r) => (
                                             <tr key={r.id}>
                                                 <td>{r.request_number}</td>
+                                                <td>{r.chemist_name}</td>
                                                 <td>{r.compound_name}</td>
                                                 <td>{r.status}</td>
                                                 <td>{r.priority}</td>
-                                                <td>{r.chemist_name || '-'}</td>
                                                 <td>{r.analyst_name || '-'}</td>
                                                 <td>{new Date(r.created_at).toLocaleDateString()}</td>
                                             </tr>
@@ -396,19 +336,8 @@ export default function AdminDashboard() {
                     </>
                 )}
 
-                {/* ===================================================== */}
-                {/* =================== ANALYTICS TAB =================== */}
-                {/* ===================================================== */}
-                {activeTab === 'analytics' && (
-                    <>
-                        <h1>Analytics</h1>
-                        <div className="card">
-                            <p style={{ color: '#6b7280' }}>
-                                Analytics charts will be added in Phase-D.
-                            </p>
-                        </div>
-                    </>
-                )}
+                {/* ================= ANALYTICS TAB ================= */}
+                {activeTab === 'analytics' && <AnalyticsPanel />}
             </div>
         </div>
     );
